@@ -20,6 +20,14 @@
 //threadIdx - индекс текущей нити в блоке
 
 
+double det(double* arr, int N) //Перемножаем элементы на главной диагонали , получаем определитель
+{
+    double d = 1.0;
+    for (int i = 0; i < N; i++)
+        d *= arr[i * N + i];
+    return d;
+}
+
 __global__ void test(double* arr, int N)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -31,7 +39,7 @@ __global__ void test(double* arr, int N)
         {
             kof = arr[(i + 1) * N + j] / arr[j * N + j];
             int g = blockIdx.y * blockDim.y + threadIdx.y;
-            //printf("g = %d i = %d j = %d  kof = %.6f\n", g, i, j, kof);
+            printf("g = %d i = %d j = %d  kof = %.6f\n", g, i, j, kof);
             //__syncthreads();
 
             if (g < N)
@@ -44,6 +52,7 @@ __global__ void test(double* arr, int N)
         }
         // __syncthreads();
     }
+    printf("new\n");
     // arr[0] = 10;
 }
 
@@ -88,10 +97,24 @@ __host__ int main()
     dim3 gridSize = dim3(N, N, 1);//Размерность сетки блоков (dim3), выделенную для расчетов
     dim3 blockSize = dim3(1, 1, 1);//Размер блока (dim3), выделенного для расчетов
 
+    //Инициализируем переменные для замера времени работы
+    float recording;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
+    float start2 = clock();
 
     test << < gridSize, blockSize >> > (pMatr_GPU, N); // вызов функции для изменения матрицы 
 
+    float end = clock();
+    //Получаем время работы
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&recording, start, stop);
+
     cudaThreadSynchronize();//Синхронизируем потоки
+
     cudaMemcpy(pMatr, pMatr_GPU, SizeInByte, cudaMemcpyDeviceToHost);//Копируем новую матрицу с GPU обратно на CPU
     printf("\n");
     for (int i = 0; i < SizeMatr; i++)  //выводим измененную матрицу
@@ -100,6 +123,12 @@ __host__ int main()
         if (((i + 1) % N == 0) && (i != 0)) printf("\n");
     }
     printf("\n");
+
+    printf("\ndet A = %.2f \n", det(pMatr, N));//Выводим определитель
+    if (recording > 0) printf("Time of execution =  %.2f\n", recording);
+    else printf("Time of execution =  %.2f\n", end - start2);
+
+    cudaFree(pMatr_GPU);//Освобождаем память
 
     return 0;
 }
