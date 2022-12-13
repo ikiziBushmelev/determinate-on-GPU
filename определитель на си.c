@@ -45,10 +45,11 @@ void matrix_output(double** matrix, int N)
 int main()
 {
     int N;
-    printf("Input size of matrix N = ");
+    printf("size = ");
     scanf("%i", &N);
-
+    double result = 1.0;
     
+    int time_end;
 
     double** input_matrix = NULL;
     input_matrix = (double**)malloc(N * sizeof(double*));
@@ -60,9 +61,13 @@ int main()
     matrix_output(input_matrix,N);
     int time_start = clock();
     determinant(input_matrix, N);
+    time_end=clock();
     matrix_output(input_matrix,N);
 
-   
+    
+    for (int i = 0; i < N; i++)  result *= input_matrix[i][i];
+    printf("\n result = %.2f \n", result;
+    printf("Time = %i\n", time_end - time_start);
     
 }
 
